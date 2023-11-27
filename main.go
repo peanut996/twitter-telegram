@@ -19,11 +19,14 @@ var (
 	telegramBotToken = ""
 
 	debug = false
+
+	channelName = ""
 )
 
 func init() {
 	token := os.Getenv("TELEGRAM_BOT_TOKEN")
 	debugMode := os.Getenv("DEBUG")
+	channel := os.Getenv("TELEGRAM_CHANNEL_NAME")
 	if token != "" {
 		telegramBotToken = token
 	}
@@ -33,6 +36,9 @@ func init() {
 	}
 	if debugMode == "true" {
 		debug = true
+	}
+	if channel != "" {
+		channelName = channel
 	}
 }
 
@@ -52,6 +58,9 @@ func main() {
 
 	for update := range updates {
 		if update.Message != nil {
+			if !validateJoinChannel(bot, update) {
+				return
+			}
 			if isHTTPUrl(update) {
 				handleMessage(update, bot)
 			} else {
@@ -59,6 +68,44 @@ func main() {
 			}
 		}
 	}
+}
+
+func validateJoinChannel(b *tgbotapi.BotAPI, update tgbotapi.Update) bool {
+	if channelName == "" {
+		return true
+	}
+	ok := findMemberFromChat(b, channelName, update.Message.From.ID)
+	channelUrl := "https://t.me/" + strings.ReplaceAll(channelName, "@", "")
+	if !ok {
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "请先加入频道")
+		button1 := tgbotapi.InlineKeyboardButton{
+			URL:  &channelUrl,
+			Text: "频道(Channel)",
+		}
+		markup := tgbotapi.InlineKeyboardMarkup{InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{{button1}}}
+		msg.ReplyMarkup = markup
+		_, err := b.Send(msg)
+		if err != nil {
+			b.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "发送频道链接失败: "+err.Error()))
+			return false
+		}
+	}
+	return true
+}
+
+func findMemberFromChat(b *tgbotapi.BotAPI, chatName string, userID int64) bool {
+	findUserConfig := tgbotapi.GetChatMemberConfig{
+		ChatConfigWithUser: tgbotapi.ChatConfigWithUser{
+			SuperGroupUsername: chatName,
+			UserID:             userID,
+		},
+	}
+	member, err := b.GetChatMember(findUserConfig)
+	if err != nil || member.Status == "left" || member.Status == "kicked" {
+		log.Printf("[ShouldLimitUser] memeber should be limit. id: %d", userID)
+		return false
+	}
+	return true
 }
 
 func isHTTPUrl(update tgbotapi.Update) bool {
