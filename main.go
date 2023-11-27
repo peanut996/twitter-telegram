@@ -7,10 +7,8 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"io"
 	"log"
-	"net"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -19,16 +17,22 @@ var (
 	apiJsonPath = "/api/json"
 
 	telegramBotToken = ""
+
+	debug = false
 )
 
 func init() {
 	token := os.Getenv("TELEGRAM_BOT_TOKEN")
+	debugMode := os.Getenv("DEBUG")
 	if token != "" {
 		telegramBotToken = token
 	}
 
 	if telegramBotToken == "" {
 		log.Fatal("telegram bot token is empty")
+	}
+	if debugMode == "true" {
+		debug = true
 	}
 }
 
@@ -38,7 +42,7 @@ func main() {
 		log.Panic(err)
 	}
 
-	bot.Debug = true
+	bot.Debug = debug
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
 	u := tgbotapi.NewUpdate(0)
@@ -63,27 +67,6 @@ func isHTTPUrl(update tgbotapi.Update) bool {
 	if !strings.HasPrefix(link, "http://") && !strings.HasPrefix(link, "https://") {
 		return false
 	}
-
-	// 检查域名或 IP 地址
-	if _, err := net.LookupHost(link); err != nil {
-		return false
-	}
-
-	// 检查端口号
-	if strings.Contains(link, ":") {
-		port, err := strconv.Atoi(link[strings.LastIndex(link, ":")+1:])
-		if err != nil || port < 1 || port > 65535 {
-			return false
-		}
-	}
-
-	// 检查路径
-	if strings.Contains(link, "/") {
-		if !strings.HasPrefix(link[strings.Index(link, "/")+1:], "/") {
-			return false
-		}
-	}
-
 	return true
 }
 
