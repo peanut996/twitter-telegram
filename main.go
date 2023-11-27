@@ -87,10 +87,11 @@ func validateJoinChannel(b *tgbotapi.BotAPI, update tgbotapi.Update) bool {
 		_, err := b.Send(msg)
 		if err != nil {
 			b.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "发送频道链接失败: "+err.Error()))
-			return false
 		}
+		return false
+	} else {
+		return true
 	}
-	return true
 }
 
 func findMemberFromChat(b *tgbotapi.BotAPI, chatName string, userID int64) bool {
