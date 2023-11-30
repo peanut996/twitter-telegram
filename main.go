@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -121,18 +122,20 @@ func isHTTPUrl(update tgbotapi.Update) bool {
 func handleMessage(update tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
-	videoUrl, err := getVideoUrl(update.Message.Text)
+	originUrl := removeQueryString(update.Message.Text)
+	videoUrl, err := getVideoUrl(originUrl)
 	if err != nil {
 		log.Printf("get video url error: %v", err)
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "获取视频地址失败: "+err.Error()))
 		return
 	}
-
+	videoUrl = removeQueryString(videoUrl)
 	msg := tgbotapi.NewVideo(update.Message.Chat.ID, tgbotapi.FileURL(videoUrl))
 	msg.ReplyToMessageID = update.Message.MessageID
 	_, err = bot.Send(msg)
 	if err != nil {
-		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "发送视频失败: "+err.Error()))
+		msg := fmt.Sprintf("发送视频失败: %s, \n\nurl: %s", err.Error(), videoUrl)
+		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, msg))
 	}
 
 }
@@ -179,4 +182,18 @@ func getVideoUrl(originUrl string) (string, error) {
 	} else {
 		return "", fmt.Errorf("status code: %d", resp.StatusCode)
 	}
+}
+
+func removeQueryString(u string) string {
+	// 解析 URL
+	parsedURL, err := url.Parse(u)
+	if err != nil {
+		return ""
+	}
+
+	// 清空 query string
+	parsedURL.RawQuery = ""
+
+	// 返回结果
+	return parsedURL.String()
 }
