@@ -134,7 +134,7 @@ func handleMessage(update tgbotapi.Update, bot *tgbotapi.BotAPI) {
 	msg.ReplyToMessageID = update.Message.MessageID
 	_, err = bot.Send(msg)
 	if err != nil {
-		msg := fmt.Sprintf("发送视频失败: %s, \n\nurl: %s", err.Error(), videoUrl)
+		msg := fmt.Sprintf("发送视频失败: %s, \n\n%s", err.Error(), videoUrl)
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, msg))
 	}
 
@@ -168,7 +168,7 @@ func getVideoUrl(originUrl string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-
+		log.Println("response body: ", string(body))
 		var result struct {
 			Status string `json:"status"`
 			Url    string `json:"url"`
