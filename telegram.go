@@ -19,10 +19,15 @@ func handleMessage(update tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "请输入正确的视频地址"))
 		return
 	}
+	if isM3U8VideoUrl(url) {
+		sendM3U8VideoMessage(bot, update, url)
+		return
+	}
 	if isStaticVideoUrl(url) {
 		sendVideoMessage(bot, update, url)
 		return
 	}
+
 	videoUrl, err := parseTwitterVideoUrl(url)
 	if err != nil {
 		log.Printf("get video url error: %v", err)
@@ -30,6 +35,23 @@ func handleMessage(update tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		return
 	}
 	sendVideoMessage(bot, update, videoUrl)
+}
+
+func sendM3U8VideoMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update, url string) {
+	err := m3u8Download(url)
+	if err != nil {
+		log.Printf("[bot] get m3u8 video url error: %v", err)
+		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "下载m3u8视频失败: "+err.Error()))
+		return
+	}
+	defer cleanOutput()
+	msg := tgbotapi.NewVideo(update.Message.Chat.ID, tgbotapi.FilePath(Output))
+	msg.ReplyToMessageID = update.Message.MessageID
+	_, err = bot.Send(msg)
+	if err != nil {
+		msg := fmt.Sprintf("下载m3u8视频成功，但发送视频失败: %s\n\n%s", err.Error(), url)
+		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, msg))
+	}
 }
 
 func sendVideoMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update, url string) {
