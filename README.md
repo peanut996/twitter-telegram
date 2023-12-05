@@ -10,6 +10,7 @@
 
 + 可以解析推特视频并返回(基于[cobalt](https://github.com/wukko/cobalt))
 + 发送推特视频链接快速下载
++ 支持推特m3u8格式视频下载
 
 ## 致谢
 
