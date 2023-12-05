@@ -23,13 +23,11 @@ type Response struct {
 
 func isStaticVideoUrl(url string) bool {
 	return strings.Contains(url, "video.twimg.com") &&
-		strings.Contains(url, "ext_tw_video") &&
 		!strings.Contains(url, ".m3u8")
 }
 
 func isM3U8VideoUrl(url string) bool {
 	return strings.Contains(url, "video.twimg.com") &&
-		strings.Contains(url, "ext_tw_video") &&
 		strings.Contains(url, ".m3u8")
 }
 
